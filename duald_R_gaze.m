@@ -71,7 +71,7 @@ try
     [datFid, selfRepFid, globalSelfRepFid] = openDataFiles(behavPath, selfReportPath, globalSelfPath);
 
     [scr, visual, keys] = openExperimentWindow(settings);
-    tobiiState = setupTobii(settings, scr, subjectID, gazeBasePath);
+    tobiiState = setupTobii(settings, scr, subjectID, gazeBasePath, visual);
     tobiiState = logGazeEvent(tobiiState, 0, 0, 'experiment_start');
 
     DrawFormattedText(scr.window, ...
@@ -239,88 +239,6 @@ globalSelfRepFid = fopen(globalSelfPath, 'w');
 fprintf(globalSelfRepFid, 'id\tage\tgender\testimate_percent\tRT\n');
 end
 
-function [scr, visual, keys] = openExperimentWindow(settings)
-PsychDefaultSetup(2);
-Screen('Preference', 'SkipSyncTests', settings.display.skipSyncTests);
-
-screenNumber = max(Screen('Screens'));
-
-visual.white = 255;
-visual.grey = floor(255 / 2);
-visual.black = 0;
-visual.bgColor = visual.grey;
-visual.fixColor = 170 / 255;
-
-[scr.window, scr.windowRect] = PsychImaging('OpenWindow', screenNumber, visual.grey / 255, [], 32, 2);
-Screen('Flip', scr.window);
-
-scr.ifi = Screen('GetFlipInterval', scr.window);
-Screen('TextSize', scr.window, 60);
-scr.topPriorityLevel = MaxPriority(scr.window);
-Priority(scr.topPriorityLevel);
-
-[scr.xCenter, scr.yCenter] = RectCenter(scr.windowRect);
-[scr.xres, scr.yres] = Screen('WindowSize', scr.window);
-Screen('BlendFunction', scr.window, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
-
-scr.subDist = settings.display.subDistCm;
-scr.width = settings.display.monitorWidthMm;
-
-ppd = va2pix(1, scr);
-visual.ppd = ppd;
-visual.textSize = round(0.5 * ppd);
-visual.fix_size = 0.1 * ppd;
-visual.stim_size = 4 * ppd;
-visual.stim_ecc = 4 * ppd;
-visual.stim_rects = [ ...
-    CenterRectOnPoint([0, 0, visual.stim_size, visual.stim_size], scr.xCenter - visual.stim_ecc, scr.yCenter)', ...
-    CenterRectOnPoint([0, 0, visual.stim_size, visual.stim_size], scr.xCenter + visual.stim_ecc, scr.yCenter)'];
-visual.stim_dur = settings.task.stim_dur;
-visual.dots_dy = (visual.stim_size / 2) * 1.5;
-visual.dots_xy = [scr.xCenter - visual.stim_ecc, scr.xCenter + visual.stim_ecc; ...
-    scr.yCenter - visual.dots_dy, scr.yCenter - visual.dots_dy];
-visual.dots_col_1 = (visual.white / 255) / 3;
-visual.dots_col_2 = ([246, 14, 0; 0, 160, 0]' / 255);
-visual.dots_size = 20;
-visual.stim_pen_width = 1;
-visual.inner_circle = round(visual.stim_size * 0.95);
-visual.stim_dotsize = 0.08;
-visual.stim_dotcolor = [visual.black, visual.black, visual.black, 0.65];
-visual.stim_centers = [scr.xCenter - visual.stim_ecc, scr.yCenter; ...
-    scr.xCenter + visual.stim_ecc, scr.yCenter];
-visual.ndots_ref = settings.task.ndots_ref;
-
-KbName('UnifyKeyNames');
-keys.escapeKey = KbName('ESCAPE');
-keys.leftKey = KbName('LeftArrow');
-keys.rightKey = KbName('RightArrow');
-end
-
-function settings = getDefaultSettings()
-settings.display.subDistCm = 65;
-settings.display.monitorWidthMm = 480;
-settings.display.skipSyncTests = 2;
-
-settings.task.soa_range = [0.4, 0.6];
-settings.task.iti = 1;
-settings.task.n_trials = 200;
-settings.task.n_trials_practice = 10;
-settings.task.block_query_interval = 10;
-settings.task.break_interval = 50;
-settings.task.collect_confidence = [0, 0];
-settings.task.ndots_ref = 50;
-settings.task.stim_dur = 0.5;
-
-settings.tobii.enable = true;
-settings.tobii.allowDummyMode = false;
-settings.tobii.runCalibration = true;
-settings.tobii.fixation.centerNormXY = [0.5, 0.5];
-settings.tobii.fixation.radiusNorm = 0.05;
-settings.tobii.fixation.dwellTimeSec = 0.25;
-settings.tobii.fixation.invalidGraceSec = 0.10;
-settings.tobii.fixation.noGazePromptSec = 2.0;
-settings.tobii.fixation.pollIntervalSec = 0.01;
-end
 
 function out = mergeStructs(base, override)
 out = base;
