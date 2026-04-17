@@ -39,9 +39,16 @@ visual.stim_dur = settings.task.stim_dur;
 visual.dots_dy = (visual.stim_size / 2) * 1.5;
 visual.dots_xy = [scr.xCenter - visual.stim_ecc, scr.xCenter + visual.stim_ecc; ...
     scr.yCenter - visual.dots_dy, scr.yCenter - visual.dots_dy];
-visual.dots_col_1 = (visual.white / 255) / 3;
-visual.dots_col_2 = ([246, 14, 0; 0, 160, 0]' / 255);
-visual.dots_size = 20;
+
+% these were initial values
+% visual.dots_col_1 = (visual.white / 255) / 3;
+% visual.dots_col_2 = ([246, 14, 0; 0, 160, 0]' / 255);
+
+% replaced with thes equiluminant 25cs/m2
+visual.dots_col_1 = 109 / 255;
+visual.dots_col_2 = ([222, 0, 0; 0, 126, 0]' / 255);
+
+visual.dots_size = 34;
 visual.stim_pen_width = 1;
 visual.inner_circle = round(visual.stim_size * 0.95);
 visual.stim_dotsize = 0.08;

@@ -5,7 +5,7 @@ settings.display.skipSyncTests = 2;
 
 settings.task.soa_range = [0.4, 0.6];
 settings.task.iti = 1;
-settings.task.n_trials = 200;
+settings.task.n_trials = 400;
 settings.task.n_trials_practice = 10;
 settings.task.block_query_interval = 10;
 settings.task.break_interval = 50;

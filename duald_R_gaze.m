@@ -68,7 +68,7 @@ tobiiState = struct();
 scr = struct();
 
 try
-    [datFid, selfRepFid, globalSelfRepFid] = openDataFiles(behavPath, selfReportPath, globalSelfPath);
+    [datFid] = openDataFiles(behavPath); %, selfReportPath, globalSelfPath);
 
     [scr, visual, keys] = openExperimentWindow(settings);
     tobiiState = setupTobii(settings, scr, subjectID, gazeBasePath, visual);
@@ -124,6 +124,7 @@ try
     block_first_correct = 0;
     block_second_correct = 0;
 
+    %% main trial loop
     for t = 1:settings.task.n_trials
         d_i = sampleRangeDifficulty(settings.task.range_logratio, settings.task.logratio_min, 2);
         [dataline1, dataline2, first_correct, second_correct, tobiiState] = runSingleTrial_gaze( ...
@@ -139,23 +140,47 @@ try
             subjectID, subjectAge, subjectGender, t, dataline2, 'range', settings.task.range_logratio);
 
         if mod(t, settings.task.block_query_interval) == 0
-            promptText = sprintf('For the last %d trials,\nestimate how many correct decisions you made:', ...
-                settings.task.block_query_interval);
-            [reported_first, reported_second] = collectBlockEstimates(scr, visual, promptText);
 
-            trial_start = t - settings.task.block_query_interval + 1;
-            trial_end = t;
-            fprintf(selfRepFid, '%s\t%i\t%i\t%i\t%i\t%i\t%i\n', ...
-                subjectID, trial_start, trial_end, block_first_correct, block_second_correct, ...
-                reported_first, reported_second);
+            %% make this into a feedback instead
+            headerText = sprintf('For the last %d trials,\nyou have made:\n- %i correct first decisions;\n- %i correct second decisions.\n\n\npress any key to continue.', ...
+                settings.task.block_query_interval, block_first_correct, block_second_correct);
 
-            tobiiState = logGazeEvent(tobiiState, t, 0, 'block_selfreport');
-            tobiiState = fetchAndAppendGaze(tobiiState, t, 0, 'block_selfreport');
+            textSz = max(round(visual.textSize), 32);
+            Screen('FillRect', scr.window, visual.grey / 255);
+            Screen('TextSize', scr.window, textSz);
+            DrawFormattedText(scr.window, headerText, 'center', scr.yCenter - 140, visual.black);
+
+            Screen('Flip', scr.window);
+
+            while 1
+                [keyIsDown, ~, ~] = KbCheck(-1);
+                if keyIsDown
+                    break;
+                end
+            end
+
+            % [reported_first, reported_second] = collectBlockEstimates(scr, visual, promptText);
+
+            % trial_start = t - settings.task.block_query_interval + 1;
+            % trial_end = t;
+            % fprintf(selfRepFid, '%s\t%i\t%i\t%i\t%i\t%i\t%i\n', ...
+            %     subjectID, trial_start, trial_end, block_first_correct, block_second_correct, ...
+            %     reported_first, reported_second);
+
+            % tobiiState = logGazeEvent(tobiiState, t, 0, 'block_selfreport');
+            % tobiiState = fetchAndAppendGaze(tobiiState, t, 0, 'block_selfreport');
+            tobiiState = logGazeEvent(tobiiState, t, 0, 'block_feedback');
+            tobiiState = fetchAndAppendGaze(tobiiState, t, 0, 'block_feedback');
 
             block_first_correct = 0;
             block_second_correct = 0;
+
+            % additional pause between trials?
+            WaitSecs(0.2);
         end
 
+
+        %% block
         if mod(t, settings.task.break_interval) == 0 && t < settings.task.n_trials
             breakMessage = sprintf(['Need a break?\n\n' ...
                 'You have completed %i out of %i total trials.\n\n' ...
@@ -174,12 +199,12 @@ try
         end
     end
 
-    promptText = 'Estimate the percentage of participants who you believe performed worse than you on this task.';
-    [global_estimate, global_rt] = collectGlobalSelfReport(scr, visual, promptText);
-    fprintf(globalSelfRepFid, '%s\t%s\t%s\t%i\t%.3f\n', ...
-        subjectID, subjectAge, subjectGender, global_estimate, global_rt);
-    tobiiState = logGazeEvent(tobiiState, settings.task.n_trials, 0, 'global_selfreport');
-    tobiiState = fetchAndAppendGaze(tobiiState, settings.task.n_trials, 0, 'global_selfreport');
+    % promptText = 'Estimate the percentage of participants who you believe performed worse than you on this task.';
+    % [global_estimate, global_rt] = collectGlobalSelfReport(scr, visual, promptText);
+    % fprintf(globalSelfRepFid, '%s\t%s\t%s\t%i\t%.3f\n', ...
+    %     subjectID, subjectAge, subjectGender, global_estimate, global_rt);
+    % tobiiState = logGazeEvent(tobiiState, settings.task.n_trials, 0, 'global_selfreport');
+    % tobiiState = fetchAndAppendGaze(tobiiState, settings.task.n_trials, 0, 'global_selfreport');
 
     message_string = ['Experiment Finished!\n\nYour score for this part is ', ...
         num2str(sum(ACC)), ' out of ', num2str(length(ACC)), '.\n\nPress any key to exit.'];
@@ -227,16 +252,16 @@ end
 
 end
 
-function [datFid, selfRepFid, globalSelfRepFid] = openDataFiles(behavPath, selfReportPath, globalSelfPath)
+function [datFid] = openDataFiles(behavPath) %, selfReportPath, globalSelfPath)
 datFid = fopen(behavPath, 'w');
 fprintf(datFid, ['id\tage\tgender\ttrial\tdecision\tn_left\tn_right\tside\tresponse\taccuracy\tRT\t' ...
     'conf\tconf_RT\tmode\tparam\n']);
 
-selfRepFid = fopen(selfReportPath, 'w');
-fprintf(selfRepFid, 'id\ttrial_start\ttrial_end\ttrue_first\ttrue_second\treported_first\treported_second\n');
-
-globalSelfRepFid = fopen(globalSelfPath, 'w');
-fprintf(globalSelfRepFid, 'id\tage\tgender\testimate_percent\tRT\n');
+% selfRepFid = fopen(selfReportPath, 'w');
+% fprintf(selfRepFid, 'id\ttrial_start\ttrial_end\ttrue_first\ttrue_second\treported_first\treported_second\n');
+% 
+% globalSelfRepFid = fopen(globalSelfPath, 'w');
+% fprintf(globalSelfRepFid, 'id\tage\tgender\testimate_percent\tRT\n');
 end
 
 
